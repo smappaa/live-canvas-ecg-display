@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="styles/main.css">
+        <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+        <title>Canvas ECG monitor</title>
+    </head>
+    <body>
+        <div id="wrapper">
+            <canvas></canvas>
+            <script src="scripts/ecg.js"></script>
+            <div id="controls">
+                <section>
+                    <h2>Views</h2>
+                    <div><label for="view-i">I</label> <input id="view-i" type="radio" name="view" onchange="ecg.setView(this.value)" value="ecg_i" checked></div>
+                    <div><label for="view-ii">II</label> <input id="view-ii" type="radio" name="view" onchange="ecg.setView(this.value)" value="ecg_ii"></div>
+                    <div><label for="view-iii">III</label> <input id="view-iii" type="radio" name="view" onchange="ecg.setView(this.value)" value="ecg_iii"></div>
+                    <div><label for="view-avr">AVR</label> <input id="view-avr" type="radio" name="view" onchange="ecg.setView(this.value)" value="ecg_avr"></div>
+                </section>
+                <section>
+                    <h2>Something goes here</h2>
+                    <div>Something</div>
+                </section>
+                <section>
+                    <h2>Heart rate</h2>
+                    <div><div id="hr">n/a</div></div>
+                </section>
+            </div>
+        </div>
+    </body>
+</html>
