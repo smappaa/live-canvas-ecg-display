@@ -17,6 +17,7 @@ class Ecg {
         this.view = "ecg_i";
         this.prevYpos = null;
         this.dataPoints = {};
+        this.dataPointsCount = 1280;
         this.dataDuration = 5000;
         this.normalizeData = true;
         this.fetchedData = {};
@@ -51,13 +52,53 @@ class Ecg {
         }
     }
 
-    async detData () {
+    objEmpty(obj) {
+        if(Object.keys(obj).length > 0) return true;
+        else return false;
+    }
+
+    async detData() {
         const response = await fetch("example-monitor-response-ws.json");
         if(!response.ok) {
             throw new Error("cannot fetch the data");
         }
         const data = await response.json();
         return data;
+    }
+
+    draw() {
+        let drawTime = Date.now();
+        let view = this.view;
+        if(this.x >= this.canvasWidth) {
+            this.x = -2;
+        } else {
+            this.x += 2;
+        }
+        if(!this.objEmpty(this.dataPoints) && this.objEmpty(this.fetchedData)) {
+            this.processFetchedData();
+        }
+        let dataPoints = this.dataPoints[view];
+        if(dataPoints && dataPoints.length > 0) {
+            if(this.dataPointsDrawingStartTime === null) {
+                this.dataPointsDrawingStartTime = drawTime;
+            }
+            let nowMinusStart = drawTime - this.dataPointsDrawingStartTime;
+            if(nowMinusStart >= this.dataDuration) {
+                this.dataPointsDrawingStartTime += this.dataDuration;
+                nowMinusStart -= this.dataDuration;
+                this.processFetchedData();
+            }
+            let dataPoint = dataPoints[Math.floor(nowMinusStart / this.dataDuration * this.dataPointsCount)];
+            let y = dataPoint;
+            c.beginPath();
+            c.moveTo(this.x - 1, this.prevYpos || dataPoint);
+            c.lineTo(this.x + 1, y);
+            c.strokeStyle = "#0f0";
+            c.lineWidth = 2;
+            c.stroke();
+            this.prevYpos = y;
+        }
+        this.previousDrawTime = drawTime;
     }
 
     processFetchedData() {
@@ -124,46 +165,6 @@ class Ecg {
         c.fillRect(this.x+2, 0, 20, this.canvasHeight);
         c.fill();
     }
-
-    draw() {
-        let drawTime = Date.now();
-        let view = this.view;
-        if(this.x >= this.canvasWidth) {
-            this.x = -2;
-        } else {
-            this.x += 2;
-        }
-        if(!this.objEmpty(this.dataPoints) && this.objEmpty(this.fetchedData)) {
-            this.processFetchedData();
-        }
-        let dataPoints = this.dataPoints[view];
-        if(dataPoints && dataPoints.length > 0) {
-            if(this.dataPointsDrawingStartTime === null) {
-                this.dataPointsDrawingStartTime = drawTime;
-            }
-            let nowMinusStart = drawTime - this.dataPointsDrawingStartTime;
-            if(nowMinusStart >= this.dataDuration) {
-                this.dataPointsDrawingStartTime += this.dataDuration;
-                nowMinusStart -= this.dataDuration;
-                this.processFetchedData();
-            }
-            let dataPoint = dataPoints[Math.floor(nowMinusStart / this.dataDuration * 1280)];
-            let y = dataPoint;
-            c.beginPath();
-            c.moveTo(this.x - 1, this.prevYpos || dataPoint);
-            c.lineTo(this.x + 1, y);
-            c.strokeStyle = "#0f0";
-            c.lineWidth = 2;
-            c.stroke();
-            this.prevYpos = y;
-        }
-        this.previousDrawTime = drawTime;
-    }
-
-    objEmpty(obj) {
-        if(Object.keys(obj).length > 0) return true;
-        else return false;
-    }
 }
 
 const canvas = document.querySelector("canvas");
@@ -178,8 +179,8 @@ c.fill();
 const ecg = new Ecg(canvas.width, canvas.height);
 
 animate = () => {
-    requestAnimationFrame(animate);
     ecg.update();
+    requestAnimationFrame(animate);
 }
 
 animate();
