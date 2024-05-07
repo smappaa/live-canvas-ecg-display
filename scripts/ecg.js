@@ -31,59 +31,33 @@ class Ecg {
     }
 
     update() {
-        this.updateData();
         this.draw();
         this.clear();
     }
 
-    async updateData() {
-        if(!this.objEmpty(this.fetchedData) && !this.fetchingData) {
-            this.fetchingData = true;
-            this.detData()
-                .then(data => {
-                    this.fetchedData = data;
-                    this.fetchingData = false;
-                })
-                .catch(error => {
-                    this.fetchedData = null;
-                    this.fetchingData = false;
-                    console.log("error:", error);
-                })
-        }
-    }
-
     objEmpty(obj) {
-        if(Object.keys(obj).length > 0) return true;
+        if (Object.keys(obj).length > 0) return true;
         else return false;
-    }
-
-    async detData() {
-        const response = await fetch("example-monitor-response-ws.json");
-        if(!response.ok) {
-            throw new Error("cannot fetch the data");
-        }
-        const data = await response.json();
-        return data;
     }
 
     draw() {
         let drawTime = Date.now();
         let view = this.view;
-        if(this.x >= this.canvasWidth) {
+        if (this.x >= this.canvasWidth) {
             this.x = -2;
         } else {
             this.x += 2;
         }
-        if(!this.objEmpty(this.dataPoints) && this.objEmpty(this.fetchedData)) {
+        if (!this.objEmpty(this.dataPoints) && this.objEmpty(this.fetchedData)) {
             this.processFetchedData();
         }
         let dataPoints = this.dataPoints[view];
-        if(dataPoints && dataPoints.length > 0) {
-            if(this.dataPointsDrawingStartTime === null) {
+        if (dataPoints && dataPoints.length > 0) {
+            if (this.dataPointsDrawingStartTime === null) {
                 this.dataPointsDrawingStartTime = drawTime;
             }
             let nowMinusStart = drawTime - this.dataPointsDrawingStartTime;
-            if(nowMinusStart >= this.dataDuration) {
+            if (nowMinusStart >= this.dataDuration) {
                 this.dataPointsDrawingStartTime += this.dataDuration;
                 nowMinusStart -= this.dataDuration;
                 this.processFetchedData();
@@ -104,22 +78,22 @@ class Ecg {
     processFetchedData() {
         this.dataPoints = {};
         let fetchedViews = this.fetchedData.waves || null;
-        for(var view in fetchedViews) {
-            if(fetchedViews.hasOwnProperty(view)) {
+        for (var view in fetchedViews) {
+            if (fetchedViews.hasOwnProperty(view)) {
                 this.dataPoints[view] = fetchedViews[view];
             }
         }
         // Apply sorcery
-        if(this.normalizeData) {
+        if (this.normalizeData) {
             // Vertically center data
-            for(var view in this.dataPoints) {
-                if(this.dataPoints.hasOwnProperty(view)) {
+            for (var view in this.dataPoints) {
+                if (this.dataPoints.hasOwnProperty(view)) {
                     let sortedDataPoints = [];
                     sortedDataPoints = this.dataPoints[view].slice();
                     sortedDataPoints.sort((a, b) => { return a - b; });
                     let meanValue = sortedDataPoints[Math.floor(sortedDataPoints.length / 2)];
                     let addend = (this.canvasHeight / 2) - meanValue;
-                    for(var i = 0; i < this.dataPoints[view].length; i++) {
+                    for (var i = 0; i < this.dataPoints[view].length; i++) {
                         this.dataPoints[view][i] += addend;
                     }
                 }
@@ -127,30 +101,30 @@ class Ecg {
             // Determine how much the data has to be squeezed to fit within margins
             let meanValues = {};
             let valueMultiplier = 1;
-            for(var view in this.dataPoints) {
-                if(this.dataPoints.hasOwnProperty(view)) {
+            for (var view in this.dataPoints) {
+                if (this.dataPoints.hasOwnProperty(view)) {
                     let sortedDataPoints = [];
                     let minValue, maxValue, newValueMultiplier;
-                    
+
                     sortedDataPoints = this.dataPoints[view].slice();
                     sortedDataPoints.sort((a, b) => { return a - b; });
                     minValue = Math.min(...sortedDataPoints);
                     maxValue = Math.max(...sortedDataPoints);
                     meanValues[view] = sortedDataPoints[Math.floor(sortedDataPoints.length / 2)];
 
-                    let minValueMultiplier = (this.graphMargin - meanValues[view]) / 
-                    (minValue - meanValues[view]);
-                    let maxValueMultiplier = ((this.canvasHeight - this.graphMargin) - 
-                    meanValues[view]) / (maxValue - meanValues[view]);
+                    let minValueMultiplier = (this.graphMargin - meanValues[view]) /
+                        (minValue - meanValues[view]);
+                    let maxValueMultiplier = ((this.canvasHeight - this.graphMargin) -
+                        meanValues[view]) / (maxValue - meanValues[view]);
                     newValueMultiplier = Math.min(minValueMultiplier, maxValueMultiplier);
                     valueMultiplier = Math.min(valueMultiplier, newValueMultiplier);
                 }
             }
             // Vertically squeeze towards middle
-            if(valueMultiplier < 1) {
-                for(var view in this.dataPoints) {
-                    if(this.dataPoints.hasOwnProperty(view)) {
-                        for(var i = 0; i < this.dataPoints[view].length; i++) {
+            if (valueMultiplier < 1) {
+                for (var view in this.dataPoints) {
+                    if (this.dataPoints.hasOwnProperty(view)) {
+                        for (var i = 0; i < this.dataPoints[view].length; i++) {
                             this.dataPoints[view][i] = Math.floor(((this.dataPoints[view][i] - meanValues[view]) * valueMultiplier) + meanValues[view]);
                         }
                     }
@@ -162,13 +136,14 @@ class Ecg {
 
     clear() {
         c.fillStyle = "#000";
-        c.fillRect(this.x+2, 0, 20, this.canvasHeight);
+        c.fillRect(this.x + 2, 0, 20, this.canvasHeight);
         c.fill();
     }
 }
 
 const canvas = document.querySelector("canvas");
 const c = canvas.getContext("2d");
+
 
 canvas.width = window.innerWidth > 1000 ? 1000 : window.innerWidth;
 canvas.height = 200;
@@ -178,9 +153,23 @@ c.fill();
 
 const ecg = new Ecg(canvas.width, canvas.height);
 
-animate = () => {
-    ecg.update();
-    requestAnimationFrame(animate);
-}
+this.fetchingData = true;
+const socket = new WebSocket('ws://54.207.148.13/wave-bed/4');
+socket.onopen = function (event) {
+    console.log('Connected');
 
-animate();
+    animate = () => {
+        ecg.update();
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+};
+
+socket.onmessage = function (event) {
+    const data = JSON.parse(event.data);
+    console.log('Message received:', Object.keys(data.waves));
+    ecg.fetchedData = data;
+    ecg.update();
+    this.fetchingData = false;
+}
