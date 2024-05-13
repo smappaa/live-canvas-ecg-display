@@ -12,12 +12,9 @@
             <canvas></canvas>
             <script src="scripts/ecg.js"></script>
             <div id="controls">
-                <section>
+                <section id="views">
                     <h2>Views</h2>
-                    <div><label for="view-i">I</label> <input id="view-i" type="radio" name="view" onchange="ecg.setView(this.value)" value="ecg_i" checked></div>
-                    <div><label for="view-ii">II</label> <input id="view-ii" type="radio" name="view" onchange="ecg.setView(this.value)" value="ecg_ii"></div>
-                    <div><label for="view-iii">III</label> <input id="view-iii" type="radio" name="view" onchange="ecg.setView(this.value)" value="ecg_iii"></div>
-                    <div><label for="view-avr">AVR</label> <input id="view-avr" type="radio" name="view" onchange="ecg.setView(this.value)" value="ecg_avr"></div>
+                    <i>No views available</i>
                 </section>
                 <section>
                     <h2>Something goes here</h2>
@@ -27,6 +24,31 @@
                     <h2>Heart rate</h2>
                     <div><div id="hr">n/a</div></div>
                 </section>
+                <script>
+                    refreshViews = () => {
+                        const availableViews = ecg.getAvailableViews();
+                        const view = ecg.getView();
+                        let html = `<h2>Views</h2>`;
+                        for(var i = 0; i < availableViews.length; i++) {
+                            html += `
+                            <div><label for="view-${availableViews[i]}">${availableViews[i]}</label> <input id="view-${availableViews[i]}" type="radio" name="view" onchange="ecg.setView(this.value)" value="${availableViews[i]}"></div>`;
+                        }
+                        if(availableViews.length === 0) {
+                            html += `
+                            <i>No views available</i>`;
+                        }
+                        document.getElementById("views").innerHTML = html;
+                        if(availableViews.includes(view)) {
+                            document.getElementById("view-" + view).setAttribute("checked", "");
+                        } else if(availableViews[0]) {
+                            ecg.setView(availableViews[0]);
+                            document.getElementById("view-" + availableViews[0]).setAttribute("checked", "");
+                        } else {
+                            ecg.setView(null);
+                        }
+                    }
+                    setInterval(refreshViews,1000);
+                </script>
             </div>
         </div>
     </body>
