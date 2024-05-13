@@ -69,7 +69,11 @@ class Ecg {
                 if (this.objPopulated(this.fetchedData)) {
                     this.swapData();
                     if (this.objPopulated(this.data) && this.data.hasOwnProperty("dataPoints")) {
-                        dataPoints = this.data.dataPoints[view].concat();
+                        if (this.data.dataPoints[view]) {
+                            dataPoints = this.data.dataPoints[view].concat();
+                        } else {
+                            dataPoints = this.data.dataPoints[this.getAvailableViews()[0]].concat();
+                        }
                         this.data.timeDifference = drawTime - this.data.startDate;
                         nowMinusStart = drawTime - this.data.timeDifference - this.data.startDate;
                     }
@@ -222,9 +226,9 @@ socket.onmessage = function (event) {
     let nowMinusLast = now - lastMessageTime;
     let averageDelay = Math.floor((now - firstTime) / (ecg.messageCount - 1));
     lastMessageTime = now;
-    console.log("Message received:", ecg.messageCount, 
-    "delay between "+(ecg.messageCount - 1)+" & "+ecg.messageCount+":", nowMinusLast, 
-    "average delay:", averageDelay);
+    console.log("Message received:", ecg.messageCount,
+        "delay between " + (ecg.messageCount - 1) + " & " + ecg.messageCount + ":", nowMinusLast,
+        "average delay:", averageDelay);
 
     const data = JSON.parse(event.data);
     ecg.processFetchedData(data);
