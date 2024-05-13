@@ -158,6 +158,8 @@ class Ecg {
                         (minValue - meanValues[view]);
                     let maxValueMultiplier = ((this.canvasHeight - this.graphMargin) -
                         meanValues[view]) / (maxValue - meanValues[view]);
+                    if (isNaN(minValueMultiplier) || !isFinite(minValueMultiplier)) minValueMultiplier = 1;
+                    if (isNaN(maxValueMultiplier) || !isFinite(maxValueMultiplier)) maxValueMultiplier = 1;
                     newValueMultiplier = Math.min(minValueMultiplier, maxValueMultiplier);
                     valueMultiplier = Math.min(valueMultiplier, newValueMultiplier);
                 }
