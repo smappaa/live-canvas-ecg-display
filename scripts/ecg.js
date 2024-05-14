@@ -208,7 +208,7 @@ animate = () => {
 
 animate();
 
-const socket = new WebSocket('wss://socketdev.skopien.com.br/wave-bed/4');
+const socket = new WebSocket('ws://54.207.148.13/wave-bed/4');
 
 socket.onopen = function (event) {
     console.log('Connected');
