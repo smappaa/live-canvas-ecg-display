@@ -5,79 +5,17 @@
     font-family: Arial, sans-serif;
     font-size: 14px;
     color: #333;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+    display: none;
 }
 body {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin: 40px;
-    background-color: rgb(217, 227, 217);
+    background-color: #000;
 }
-#wrapper {
-    position: relative;
-    background-color: #fff;
-}
-canvas, #controls {
-    max-width: 1000px;
-}
-#controls {
-    display: flex;
-    justify-content: space-around;
-    gap: 40px;
-    margin: 40px;
-}
-#controls > section {
-    display: flex;
-    justify-content: flex-start;
-    flex-direction: column;
-    align-items: flex-start;
-    flex-basis: 45%;
-}
-#controls > section:nth-child(odd) {
-    flex-basis: 30%;
-}
-#controls > section > h2, #controls > section > div {
-    position: relative;
-    width: 100%;
-    align-items: flex-start;
-}
-#controls > section > h2 {
-    margin-bottom: 20px;
-    font-size: 1.5em;
-    cursor: default;
-    user-select: none;
-}
-#controls > section > div > label {
-    display: inline-block;
-    width: 100%;
-    line-height: 35px;
-    user-select: none;
-}
-input[type=radio], input[type=checkbox] {
+canvas {
     position: absolute;
-    left: 180px;
-    vertical-align: middle;
-    height: 100%;
-}
-#hr {
-    position: relative;
-    width: 100px;
-    font-weight: bold;
-    font-size: 1.4em;
-    transition: .05s all ease-out;
-    cursor: default;
-}
-#hr::selection {
-    background: #9bdc9d;
-}
-
-@media only screen and (max-width: 900px) {
-    #controls > section > div > label {
-        display: inline;
-    }
-    input[type=radio], input[type=checkbox] {
-        position: relative;
-        left: 0;
-        margin-left: 20px;
-    }
+    top: 0;
+    left: 0;
 }

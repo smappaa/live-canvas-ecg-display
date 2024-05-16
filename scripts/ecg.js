@@ -8,14 +8,18 @@
  */
 
 class Ecg {
-    constructor(canvasWidth, canvasHeight) {
-        this.canvasWidth = canvasWidth;
-        this.canvasHeight = canvasHeight;
-        this.graphMargin = 20;
+    constructor(canvas, c) {
+        this.canvas = canvas
+        this.c = c;
+        this.viewWidth = null;
+        this.viewHeight = 140;
+        this.viewMargin = 6;
+        this.numbersPanelWidth = 0; // 200?
+        this.numbersPanelHeight = null;
         this.drawing = false;
         this.x = -2;
         this.view = null;
-        this.prevYpos = null;
+        this.prevYpos = {};
         this.fetchedData = null;
         this.data = {};
         this.normalizeData = true;
@@ -25,8 +29,22 @@ class Ecg {
         this.dataId = 0;
     }
 
+    canvasDimensions(width, height) {
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.viewWidth = this.canvas.width - this.numbersPanelWidth;
+        this.numbersPanelHeight = this.canvas.height;
+        this.c.fillStyle = "#000";
+        this.c.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.c.fill();
+    }
+
     setDrawing(drawing) {
         this.drawing = drawing;
+    }
+
+    getViewHeight() {
+        return this.viewHeight;
     }
 
     setView(view) {
@@ -45,30 +63,26 @@ class Ecg {
         if(this.drawing) {
             this.draw();
             this.clear();
-        } 
+        }
     }
 
     draw() {
         const drawTime = Date.now();
-        const view = this.view;
-        let dataPoints = null;
 
-        if (this.x >= this.canvasWidth) {
+        if (this.x >= this.viewWidth) {
             this.x = -2;
         } else {
             this.x += 2;
         }
+
+        // First swap
         if (!this.objPopulated(this.data) && this.objPopulated(this.fetchedData)) {
             this.swapData();
+            const availableViews = this.getAvailableViews();
+            this.canvasDimensions(this.canvas.width, availableViews.length * this.viewHeight);
         }
-        if (this.objPopulated(this.data) && this.data.hasOwnProperty("dataPoints")) {
-            for (var v in this.data.dataPoints) {
-                if (this.data.dataPoints.hasOwnProperty(v) && v === view) {
-                    dataPoints = this.data.dataPoints[view].concat();
-                }
-            }
-        }
-        if (dataPoints && dataPoints.length > 0) {
+
+        if (this.objPopulated(this.data) && this.objPopulated(this.data.dataPoints)) {
             if (this.data.drawingStartTime === null) {
                 this.data.drawingStartTime = drawTime;
             }
@@ -76,22 +90,42 @@ class Ecg {
             if (nowMinusStart >= this.data.dataDuration) {
                 if (this.objPopulated(this.fetchedData)) {
                     this.swapData();
-                    if (this.objPopulated(this.data) && this.data.hasOwnProperty("dataPoints")) {
-                        dataPoints = this.data.dataPoints[view].concat();
+                    if (this.objPopulated(this.data) && this.objPopulated(this.data.dataPoints)) {
+                        this.data.drawingStartTime = drawTime;
                         nowMinusStart = drawTime - this.data.drawingStartTime;
                     }
                 }
             }
-            const dataPoint = dataPoints[Math.floor(nowMinusStart / this.data.dataDuration * this.data.dataPointsCount)];
-            let y = this.canvasHeight - dataPoint; // Mirror dataPoint horizontally to display it correctly
-            c.beginPath();
-            c.moveTo(this.x - (this.fixBreak === 2 ? 3 : 1), this.prevYpos || y);
-            c.lineTo(this.x + 1, y);
-            c.strokeStyle = "#0f0";
-            c.lineWidth = 2;
-            c.stroke();
-            this.fixBreak = y ? 0 : this.fixBreak += 2; // Aesthetic fix to compensate delay of populating this.data when swapData()
-            this.prevYpos = this.fixBreak === 2 ? this.prevYpos : y;
+
+            let yAddend = 0;
+
+            for (var view in this.data.dataPoints) {
+                if (this.data.dataPoints.hasOwnProperty(view)) {
+                    // Data point
+                    const dataPoint = this.data.dataPoints[view][Math.floor(nowMinusStart / this.data.dataDuration * this.data.dataPointsCount)];
+                    let y = this.viewHeight - dataPoint; // Mirror dataPoint horizontally to display it correctly
+                    this.c.beginPath();
+                    this.c.moveTo(this.x - 1, this.prevYpos[view] + yAddend);
+                    this.c.lineTo(this.x + 1, y + yAddend);
+                    this.c.strokeStyle = "#0f0";
+                    this.c.lineWidth = 2;
+                    this.c.stroke();
+                    this.c.closePath();
+                    this.prevYpos[view] = y;
+
+                    // View title background
+                    this.c.fillStyle = "#000";
+                    this.c.fillRect(6, 6 + yAddend, 40, 16);
+                    this.c.fill();
+
+                    // View title
+                    this.c.fillStyle = "#0f0";
+                    this.c.font = "12px Arial";
+                    this.c.fillText(view, 8, 18 + yAddend);
+
+                    yAddend += this.viewHeight;
+                }
+            }
         }
     }
 
@@ -109,9 +143,9 @@ class Ecg {
     }
 
     clear() {
-        c.fillStyle = "#000";
-        c.fillRect(this.x + 2, 0, 20, this.canvasHeight);
-        c.fill();
+        this.c.fillStyle = "#000";
+        this.c.fillRect(this.x + 2, 0, 20, this.canvas.height);
+        this.c.fill();
     }
 
     processFetchedData(fetchedData) {
@@ -144,7 +178,7 @@ class Ecg {
                     sortedDataPoints = dataPoints[view].slice();
                     sortedDataPoints.sort((a, b) => { return a - b; });
                     let meanValue = sortedDataPoints[Math.floor(sortedDataPoints.length / 2)];
-                    let addend = (this.canvasHeight / 2) - meanValue;
+                    let addend = (this.viewHeight / 2) - meanValue;
                     for (var i = 0; i < dataPoints[view].length; i++) {
                         dataPoints[view][i] += addend;
                     }
@@ -164,9 +198,9 @@ class Ecg {
                     maxValue = Math.max(...sortedDataPoints);
                     meanValues[view] = sortedDataPoints[Math.floor(sortedDataPoints.length / 2)];
 
-                    let minValueMultiplier = (this.graphMargin - meanValues[view]) /
+                    let minValueMultiplier = (this.viewMargin - meanValues[view]) /
                         (minValue - meanValues[view]);
-                    let maxValueMultiplier = ((this.canvasHeight - this.graphMargin) -
+                    let maxValueMultiplier = ((this.viewHeight - this.viewMargin) -
                         meanValues[view]) / (maxValue - meanValues[view]);
                     if (isNaN(minValueMultiplier) || !isFinite(minValueMultiplier)) minValueMultiplier = 1;
                     if (isNaN(maxValueMultiplier) || !isFinite(maxValueMultiplier)) maxValueMultiplier = 1;
@@ -213,13 +247,10 @@ class Ecg {
 }
 
 const canvas = document.querySelector("canvas");
-const c = canvas.getContext("2d");
-canvas.width = window.innerWidth > 1000 ? 1000 : window.innerWidth;
-canvas.height = 200;
-c.fillStyle = "#000"; c.fillRect(0, 0, canvas.width, canvas.height);
-c.fill();
+const context = canvas.getContext("2d");
 
-const ecg = new Ecg(canvas.width, canvas.height);
+const ecg = new Ecg(canvas, context);
+ecg.canvasDimensions(window.innerWidth, window.innerHeight);
 
 animate = () => {
     ecg.update();
