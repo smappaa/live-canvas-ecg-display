@@ -3,7 +3,7 @@
  * Live ECG data visualised with HTML Canvas and Javascript
  * 
  * Authors: Samuli Puolakka / @smappaa & Kauã Landi / @kaualandi on GitHub
- * Date: March 31st to May 13th 2024
+ * Date: March 31st to May 16th 2024
  * License: MIT
  */
 
@@ -12,15 +12,21 @@ class Ecg {
         this.canvasWidth = canvasWidth;
         this.canvasHeight = canvasHeight;
         this.graphMargin = 20;
+        this.drawing = false;
         this.x = -2;
         this.view = null;
         this.prevYpos = null;
         this.fetchedData = null;
         this.data = {};
         this.normalizeData = true;
+        this.fixBreak = 0;
         //debug
         this.messageCount = 0;
         this.dataId = 0;
+    }
+
+    setDrawing(drawing) {
+        this.drawing = drawing;
     }
 
     setView(view) {
@@ -36,8 +42,10 @@ class Ecg {
     }
 
     update() {
-        this.draw();
-        this.clear();
+        if(this.drawing) {
+            this.draw();
+            this.clear();
+        } 
     }
 
     draw() {
@@ -61,29 +69,29 @@ class Ecg {
             }
         }
         if (dataPoints && dataPoints.length > 0) {
-            if (this.data.timeDifference === null) {
-                this.data.timeDifference = drawTime - this.data.startDate;
+            if (this.data.drawingStartTime === null) {
+                this.data.drawingStartTime = drawTime;
             }
-            let nowMinusStart = drawTime - this.data.timeDifference - this.data.startDate;
+            let nowMinusStart = drawTime - this.data.drawingStartTime;
             if (nowMinusStart >= this.data.dataDuration) {
                 if (this.objPopulated(this.fetchedData)) {
                     this.swapData();
                     if (this.objPopulated(this.data) && this.data.hasOwnProperty("dataPoints")) {
                         dataPoints = this.data.dataPoints[view].concat();
-                        this.data.timeDifference = drawTime - this.data.startDate;
-                        nowMinusStart = drawTime - this.data.timeDifference - this.data.startDate;
+                        nowMinusStart = drawTime - this.data.drawingStartTime;
                     }
                 }
             }
             const dataPoint = dataPoints[Math.floor(nowMinusStart / this.data.dataDuration * this.data.dataPointsCount)];
             let y = this.canvasHeight - dataPoint; // Mirror dataPoint horizontally to display it correctly
             c.beginPath();
-            c.moveTo(this.x - 1, this.prevYpos || y);
+            c.moveTo(this.x - (this.fixBreak === 2 ? 3 : 1), this.prevYpos || y);
             c.lineTo(this.x + 1, y);
             c.strokeStyle = "#0f0";
             c.lineWidth = 2;
             c.stroke();
-            this.prevYpos = y;
+            this.fixBreak = y ? 0 : this.fixBreak += 2; // Aesthetic fix to compensate delay of populating this.data when swapData()
+            this.prevYpos = this.fixBreak === 2 ? this.prevYpos : y;
         }
     }
 
@@ -93,7 +101,9 @@ class Ecg {
     }
 
     swapData() {
-        console.log("swapped:", this.fetchedData.id, "dataPointsCount:", this.fetchedData.dataPointsCount);
+        console.log("swapped:", this.fetchedData.id, "dataPointsCount:", this.fetchedData.dataPointsCount,
+            "dataDuration:", this.fetchedData.dataDuration
+        );
         this.data = this.fetchedData;
         this.fetchedData = null;
     }
@@ -108,7 +118,6 @@ class Ecg {
         let availableViews = [];
         let dataPoints = {};
         let dataPointsCount = 0;
-        let dataDuration = new Date(fetchedData.end_date).getTime() - new Date(fetchedData.start_date).getTime();
         let fetchedViews = fetchedData.waves || null;
 
         //debug
@@ -125,6 +134,7 @@ class Ecg {
         if (this.view === null && availableViews[0]) {
             this.view = availableViews[0];
         }
+
         // Apply sorcery
         if (this.normalizeData) {
             // Vertically center data
@@ -175,15 +185,27 @@ class Ecg {
                 }
             }
         }
-        this.fetchedData = {};
-        this.fetchedData.availableViews = availableViews;
-        this.fetchedData.dataPoints = dataPoints;
-        this.fetchedData.dataPointsCount = dataPointsCount;
-        this.fetchedData.dataDuration = dataDuration;
-        this.fetchedData.startDate = Date.parse(fetchedData.start_date);
-        this.fetchedData.endDate = Date.parse(fetchedData.end_date);
-        this.fetchedData.id = this.dataId;
-        this.fetchedData.timeDifference = null;
+
+        // This will break if availableViews changes during stream
+        // If fetchedData has accumulated too much data, empty
+        if(this.fetchedData === null || this.fetchedData.dataDuration >= 10000) {
+            this.fetchedData = {};
+            this.fetchedData.availableViews = availableViews;
+            this.fetchedData.dataPoints = dataPoints;
+            this.fetchedData.dataPointsCount = dataPointsCount;
+            this.fetchedData.dataDuration = (dataPointsCount / 256) * 1000;
+            this.fetchedData.drawingStartTime = null;
+            this.fetchedData.id = [this.dataId];
+        } else {
+            for (var view in dataPoints) {
+                if (dataPoints.hasOwnProperty(view)) {
+                    this.fetchedData.dataPoints[view] = this.fetchedData.dataPoints[view].concat(dataPoints[view]);
+                }
+            }
+            this.fetchedData.dataPointsCount += dataPointsCount;
+            this.fetchedData.dataDuration += (dataPointsCount / 256) * 1000;
+            this.fetchedData.id.push(this.dataId);
+        }
 
         //debug
         console.log("Processed:", this.dataId);
@@ -216,6 +238,8 @@ socket.onopen = function (event) {
 let lastMessageTime = null;
 let firstTime = null;
 
+let firstTimeDelay = true;
+
 socket.onmessage = function (event) {
     //debug
     ecg.messageCount++;
@@ -230,4 +254,11 @@ socket.onmessage = function (event) {
 
     const data = JSON.parse(event.data);
     ecg.processFetchedData(data);
+
+    if(firstTimeDelay) {
+        firstTimeDelay = false;
+        setTimeout(() => {
+            ecg.setDrawing(true);
+        }, 3000);
+    }
 }
