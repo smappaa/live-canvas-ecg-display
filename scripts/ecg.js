@@ -23,7 +23,6 @@ class Ecg {
         this.fetchedData = null;
         this.data = {};
         this.normalizeData = true;
-        this.fixBreak = 0;
         //debug
         this.messageCount = 0;
         this.dataId = 0;
@@ -101,13 +100,20 @@ class Ecg {
 
             for (var view in this.data.dataPoints) {
                 if (this.data.dataPoints.hasOwnProperty(view)) {
+                    // Choose color according to the view
+                    let color = null;
+                    switch(view) {
+                        case "resp" : color = "#ddd"; break;
+                        default: color = "#0f0";
+                    }
+
                     // Data point
                     const dataPoint = this.data.dataPoints[view][Math.floor(nowMinusStart / this.data.dataDuration * this.data.dataPointsCount)];
                     let y = this.viewHeight - dataPoint; // Mirror dataPoint horizontally to display it correctly
                     this.c.beginPath();
                     this.c.moveTo(this.x - 1, this.prevYpos[view] + yAddend);
                     this.c.lineTo(this.x + 1, y + yAddend);
-                    this.c.strokeStyle = "#0f0";
+                    this.c.strokeStyle = color;
                     this.c.lineWidth = 2;
                     this.c.stroke();
                     this.c.closePath();
@@ -119,7 +125,7 @@ class Ecg {
                     this.c.fill();
 
                     // View title
-                    this.c.fillStyle = "#0f0";
+                    this.c.fillStyle = color;
                     this.c.font = "12px Arial";
                     this.c.fillText(view, 8, 18 + yAddend);
 
