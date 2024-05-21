@@ -103,7 +103,9 @@ class Ecg {
                     // Choose color according to the view
                     let color = null;
                     switch(view) {
-                        case "resp" : color = "#ddd"; break;
+                        case "pleth": color = "#fe5"; break;
+                        case "plenth": color = "#fe5"; break;
+                        case "resp": color = "#ddd"; break;
                         default: color = "#0f0";
                     }
 
@@ -265,7 +267,7 @@ animate = () => {
 
 animate();
 
-const socket = new WebSocket('ws://54.207.148.13/wave-bed/4');
+const socket = new WebSocket('wss://socketdev.skopien.com.br/wave-bed/4');
 
 socket.onopen = function (event) {
     console.log('Connected');
