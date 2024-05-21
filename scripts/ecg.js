@@ -3,7 +3,7 @@
  * Live ECG data visualised with HTML Canvas and Javascript
  * 
  * Authors: Samuli Puolakka / @smappaa & Kauã Landi / @kaualandi on GitHub
- * Date: March 31st to May 16th 2024
+ * Date: March 31st to May 21th 2024
  * License: MIT
  */
 
@@ -168,6 +168,17 @@ class Ecg {
         for (var view in fetchedViews) {
             if (fetchedViews.hasOwnProperty(view)) {
                 dataPoints[view] = fetchedViews[view];
+
+                // Normalize the amount of resp dataPoints by doubling them
+                if(view == "resp") {
+                    let newDataPoints = [];
+                    for(var i = 0; i < dataPoints[view].length; i++) {
+                        newDataPoints.push(dataPoints[view][i]);
+                        newDataPoints.push(dataPoints[view][i]);
+                    }
+                    dataPoints[view] = newDataPoints;
+                }
+
                 dataPointsCount = dataPointsCount ? dataPointsCount : fetchedViews[view].length;
                 availableViews.push(view);
             }
@@ -192,6 +203,7 @@ class Ecg {
                     }
                 }
             }
+
             // Determine how much the data has to be squeezed to fit within margins
             let meanValues = {};
             let valueMultiplier = 1;
@@ -216,6 +228,7 @@ class Ecg {
                     valueMultiplier = Math.min(valueMultiplier, newValueMultiplier);
                 }
             }
+
             // Vertically squeeze towards middle
             if (valueMultiplier < 1) {
                 for (var view in dataPoints) {
