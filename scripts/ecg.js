@@ -23,6 +23,7 @@ class Ecg {
         this.fetchedData = null;
         this.data = {};
         this.normalizeData = true;
+        this.resetToPoint = 50;
         //debug
         this.messageCount = 0;
         this.dataId = 0;
@@ -59,7 +60,7 @@ class Ecg {
     }
 
     update() {
-        if(this.drawing) {
+        if (this.drawing) {
             this.draw();
             this.clear();
         }
@@ -102,7 +103,7 @@ class Ecg {
                 if (this.data.dataPoints.hasOwnProperty(view)) {
                     // Choose color according to the view
                     let color = null;
-                    switch(view) {
+                    switch (view) {
                         case "pleth": color = "#fe5"; break;
                         case "plenth": color = "#fe5"; break;
                         case "resp": color = "#ddd"; break;
@@ -110,7 +111,7 @@ class Ecg {
                     }
 
                     // Data point
-                    const dataPoint = this.data.dataPoints[view][Math.floor(nowMinusStart / this.data.dataDuration * this.data.dataPointsCount)];
+                    const dataPoint = this.data.dataPoints[view][Math.floor(nowMinusStart / this.data.dataDuration * this.data.dataPointsCount)] || this.resetToPoint;
                     let y = this.viewHeight - dataPoint; // Mirror dataPoint horizontally to display it correctly
                     this.c.beginPath();
                     this.c.moveTo(this.x - 1, this.prevYpos[view] + yAddend);
@@ -170,9 +171,9 @@ class Ecg {
                 dataPoints[view] = fetchedViews[view];
 
                 // Normalize the amount of resp dataPoints by doubling them
-                if(view == "resp") {
+                if (view == "resp") {
                     let newDataPoints = [];
-                    for(var i = 0; i < dataPoints[view].length; i++) {
+                    for (var i = 0; i < dataPoints[view].length; i++) {
                         newDataPoints.push(dataPoints[view][i]);
                         newDataPoints.push(dataPoints[view][i]);
                     }
@@ -243,7 +244,7 @@ class Ecg {
 
         // This will break if availableViews changes during stream
         // If fetchedData has accumulated too much data, empty
-        if(this.fetchedData === null || this.fetchedData.dataDuration >= 10000) {
+        if (this.fetchedData === null || this.fetchedData.dataDuration >= 10000) {
             this.fetchedData = {};
             this.fetchedData.availableViews = availableViews;
             this.fetchedData.dataPoints = dataPoints;
@@ -280,10 +281,10 @@ animate = () => {
 
 animate();
 
-const socket = new WebSocket('wss://socketdev.skopien.com.br/wave-bed/4');
+const socketWaves = new WebSocket('ws://54.207.148.13/wave-bed/4');
 
-socket.onopen = function (event) {
-    console.log('Connected');
+socketWaves.onopen = function (event) {
+    console.log('Waves connected');
 }
 
 //debug
@@ -292,7 +293,7 @@ let firstTime = null;
 
 let firstTimeDelay = true;
 
-socket.onmessage = function (event) {
+socketWaves.onmessage = function (event) {
     //debug
     ecg.messageCount++;
     let now = Date.now();
@@ -300,17 +301,36 @@ socket.onmessage = function (event) {
     let nowMinusLast = now - lastMessageTime;
     let averageDelay = Math.floor((now - firstTime) / (ecg.messageCount - 1));
     lastMessageTime = now;
-    console.log("Message received:", ecg.messageCount, 
-    "delay between "+(ecg.messageCount - 1)+" & "+ecg.messageCount+":", nowMinusLast, 
-    "average delay:", averageDelay);
+    console.log("Message received:", ecg.messageCount,
+        "delay between " + (ecg.messageCount - 1) + " & " + ecg.messageCount + ":", nowMinusLast,
+        "average delay:", averageDelay);
 
     const data = JSON.parse(event.data);
     ecg.processFetchedData(data);
 
-    if(firstTimeDelay) {
+    if (firstTimeDelay) {
         firstTimeDelay = false;
         setTimeout(() => {
             ecg.setDrawing(true);
         }, 3000);
     }
+}
+
+const socketParameters = new WebSocket('ws://54.207.148.13/monitor_param/');
+socketParameters.onopen = function (event) {
+    console.log('Parameters connected');
+}
+
+socketParameters.onmessage = function (event) {
+    const data = JSON.parse(event.data);
+    if (data.id !== 4) return; // Filter selected monitor
+    // Numerical parameters received
+    console.log(data.params);
+    // * param.channel is the channel name
+    // * param.value is the value of the parameter
+    // ? Some of the fields have minimum and maximum values, which must be specified in the bottom left-hand corner, as in the printout below.
+    // ? These values are located at:
+    // * Min: param.alarm.min
+    // * Max: param.alarm.max
+    // ? Some fields do not have the “alarm” object, so this must be dealt with.
 }
