@@ -19,3 +19,28 @@ canvas {
     top: 0;
     left: 0;
 }
+menu {
+    display: none;
+    position: absolute;
+    width: 200px;
+    padding: 25px;
+    background-color: #fff;
+    border-radius: 2px;
+}
+menu.open {
+    display: block;
+}
+menu li {
+    padding: 25px 0;
+    border-bottom: 1px solid #ddd;
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #555;
+    cursor: pointer;
+    list-style-type: none;
+    user-select: none;
+    transition: .2s all ease-out;
+}
+menu li:first-child {
+    border-top: 1px solid #ddd;
+}
