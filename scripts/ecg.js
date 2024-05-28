@@ -209,7 +209,7 @@ class Ecg {
 
     clear(index) {
         this.c.fillStyle = "#000";
-        if(index) {
+        if(index >= 0) {
             this.c.fillRect(0, index * this.viewDimensions.h, this.viewDimensions.w, this.viewDimensions.h);
         } else if(this.x < this.viewDimensions.w - 20) {
             this.c.fillRect(this.x + 2, 0, 20, this.canvas.height);
